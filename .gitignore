@@ -1,0 +1,35 @@
+# Terraform working directories and plugin cache
+.terraform/
+.terraform.tfstate.lock.info
+
+# State should never be local — it lives in the azurerm backend
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Plan output. The pipeline uploads these as artifacts; they do not belong in git.
+tfplan
+*.tfplan
+plan.json
+plan.txt
+
+# Local variable overrides. Environment values belong in prod.auto.tfvars.
+*.auto.tfvars.local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+local.tfvars
+secrets.tfvars
+
+# Editor and OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored. The dependency lock
+# file is committed so that CI and every engineer resolve identical provider
+# versions.

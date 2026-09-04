@@ -1,0 +1,127 @@
+name: terraform
+
+on:
+  pull_request:
+    branches: [main]
+
+# OIDC federation: the job requests a short-lived token from GitHub and
+# exchanges it for an Azure token. There is no client secret in this repository.
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: terraform-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: "true"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          # Must match the version used to apply locally. A newer local
+          # Terraform writes a state snapshot this job cannot read.
+          terraform_version: "1.15.8"
+          terraform_wrapper: false
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      - name: Init
+        run: terraform init -no-color
+
+      - name: Validate
+        run: terraform validate -no-color
+
+      - name: Plan
+        run: |
+          terraform plan -no-color -lock-timeout=5m -out=tfplan
+          terraform show -json tfplan > plan.json
+          terraform show -no-color tfplan > plan.txt
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: |
+            plan.json
+            plan.txt
+          retention-days: 5
+
+      - name: Comment plan on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### Terraform plan'
+            echo
+            echo '```terraform'
+            tail -c 60000 plan.txt
+            echo '```'
+          } > comment.md
+          gh pr comment "${{ github.event.number }}" --body-file comment.md
+
+  # This job name is the required status check on main.
+  #
+  # It exists so that the change-safety guarantee is enforced by the platform
+  # rather than by a reviewer noticing. Anything that deletes or replaces a
+  # resource fails here, and a failing required check is a merge condition that
+  # never becomes satisfied — for a human or for an agent.
+  no-destroy:
+    name: no-destroy
+    needs: plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Block destructive changes
+        run: |
+          COUNT=$(jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length' plan.json)
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::Plan contains $COUNT destructive action(s)"
+            echo ""
+            echo "The following resources would be deleted or replaced:"
+            jq -r '.resource_changes[]?
+                   | select(.change.actions | index("delete"))
+                   | "  \(.address)  [\(.change.actions | join(","))]"' plan.json
+            echo ""
+            echo "Replacing a stateful resource is a deliberate, separately reviewed change."
+            exit 1
+          fi
+
+          echo "No destroys or replacements in plan."
+
+      - name: Summarise plan
+        run: |
+          {
+            echo '### Change safety'
+            echo
+            echo "| Action | Count |"
+            echo "| --- | ---: |"
+            for action in create update delete; do
+              n=$(jq --arg a "$action" \
+                   '[.resource_changes[]? | select(.change.actions | index($a))] | length' plan.json)
+              echo "| $action | $n |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
