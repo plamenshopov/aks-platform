@@ -124,10 +124,19 @@ account can merge past it.
 If a change legitimately needs to replace a resource, that is a conversation and
 a separate, deliberate pull request — not something to force through the gate.
 
-Two changes that force cluster replacement and are easy to make by accident:
+Changes that force replacement of the cluster and everything depending on it —
+all easy to make by accident, and none of them look dangerous in a diff:
 
-- Changing `default_node_pool.vm_size` without `temporary_name_for_rotation`.
-- Toggling `only_critical_addons_enabled` on the system pool.
+- `network_policy`, `network_plugin`, `service_cidr`, `pod_cidr`.
+- `private_cluster_enabled`, `dns_prefix`, `node_resource_group`.
+- `only_critical_addons_enabled` on the system pool.
+
+Swapping `network_policy` is the one to watch. It reads as a hardening change
+and it replaces the cluster.
+
+Separately: node pool `vm_size` changes need `temporary_name_for_rotation`.
+Without it the plan reports an in-place update and the *apply* fails part-way
+through the rotation — the plan gives you no warning, so it is on the reviewer.
 
 ---
 

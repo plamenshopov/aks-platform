@@ -44,10 +44,15 @@ one of these standards, say so explicitly and give the severity.
 
 - Flag any change whose plan would delete or replace a stateful resource — the
   cluster, the vault, a key, or the storage account.
-- Node pool `vm_size` changes MUST set `temporary_name_for_rotation`. Without
-  it, resizing a pool replaces the cluster.
+- Node pool `vm_size` changes MUST set `temporary_name_for_rotation`. Without it
+  the plan reports a harmless in-place update and the apply then fails part-way
+  through the rotation. The plan will not warn you, so this is a review
+  responsibility.
 - Flag changes to `only_critical_addons_enabled`, `private_cluster_enabled`,
-  `network_plugin`, `service_cidr` or `pod_cidr`. All force replacement.
+  `network_plugin`, `network_policy`, `service_cidr` or `pod_cidr`. All force
+  replacement of the cluster and everything that depends on it. `network_policy`
+  is the dangerous one: swapping the policy engine reads as a hardening change
+  and destroys the cluster.
 
 ## Networking
 
