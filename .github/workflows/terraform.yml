@@ -11,9 +11,16 @@ permissions:
   contents: read
   pull-requests: write
 
+# Every branch plans against the same remote state blob, so runs must be
+# serialised globally rather than per branch. Without this, opening several pull
+# requests at once produces "state blob is already locked" failures that look
+# like broken code and are not.
+#
+# cancel-in-progress stays false: a queued plan should wait its turn, not be
+# thrown away.
 concurrency:
-  group: terraform-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  group: terraform-shared-state
+  cancel-in-progress: false
 
 env:
   ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
