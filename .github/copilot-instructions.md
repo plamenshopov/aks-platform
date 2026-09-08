@@ -16,9 +16,13 @@ one of these standards, say so explicitly and give the severity.
   governance and the conditional access policies applied to Entra ID sign-in.
   Leaving local accounts enabled is a **P1** finding.
 - etcd MUST be encrypted with a customer-managed key via the
-  `key_management_service` block, referencing a key in the platform vault. The
-  Azure platform key is not acceptable for a cluster at this data
-  classification. A missing `key_management_service` block is a **P2** finding.
+  `key_management_service` block, referencing a key in the platform vault.
+  Without it, every Kubernetes Secret in the cluster — database credentials, API
+  tokens, TLS private keys — is protected by a key Microsoft holds, which we
+  cannot revoke, rotate on demand, or place under legal hold. The platform vault
+  already contains a key provisioned for exactly this purpose, so a cluster that
+  does not reference it is an unnecessary and standing exposure of all cluster
+  secrets. A missing `key_management_service` block is a **P1** finding.
 - `private_cluster_enabled = false` is acceptable only when the API server is
   also constrained by authorized IP ranges. Public endpoint plus unrestricted
   ranges is the combination to flag.
