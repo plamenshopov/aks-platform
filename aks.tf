@@ -125,7 +125,7 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   key_management_service {
-    key_vault_key_id = azurerm_key_vault_key.etcd.versionless_id
+    key_vault_key_id = azurerm_key_vault_key.etcd.id
   }
 
   workload_autoscaler_profile {
