@@ -46,7 +46,7 @@ pod_cidr       = "192.168.0.0/16"
 aks_sku_tier                  = "Free"
 aks_automatic_upgrade_channel = "patch"
 aks_node_os_upgrade_channel   = "NodeImage"
-aks_network_policy            = "azure"
+aks_network_policy            = "calico"
 
 # Entra ID group granted cluster-admin. Populate with the object ID of
 # aks-prod-admins created during tenant bootstrap:
