@@ -60,8 +60,7 @@ resource "azurerm_kubernetes_cluster" "this" {
   image_cleaner_interval_hours = 48
 
   identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.aks_control_plane.id]
+    type = "SystemAssigned"
   }
 
   # ---------------------------------------------------------------------------
@@ -180,7 +179,6 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   depends_on = [
-    azurerm_role_assignment.aks_key_vault_crypto_user,
     azurerm_subnet_network_security_group_association.system_nodes,
     azurerm_subnet_network_security_group_association.user_nodes,
   ]

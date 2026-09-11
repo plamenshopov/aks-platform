@@ -97,8 +97,8 @@ resource "azurerm_key_vault_key" "workload" {
 # order to wrap and unwrap the etcd data encryption key.
 resource "azurerm_role_assignment" "aks_key_vault_crypto_user" {
   scope                = azurerm_key_vault.this.id
-  role_definition_name = "Key Vault Crypto Service Encryption User"
-  principal_id         = azurerm_user_assigned_identity.aks_control_plane.principal_id
+  role_definition_name = "Key Vault Crypto User"
+  principal_id         = azurerm_kubernetes_cluster.this.identity[0].principal_id
   principal_type       = "ServicePrincipal"
 
   description = "Allows the AKS control plane to use platform keys for envelope encryption."
