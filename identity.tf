@@ -10,6 +10,20 @@
 ################################################################################
 
 ################################################################################
+# AKS control plane identity
+#
+# User-assigned identity is required so Key Vault permissions can be granted
+# before cluster creation when etcd CMK encryption is enabled.
+################################################################################
+
+resource "azurerm_user_assigned_identity" "aks_control_plane" {
+  name                = "id-${local.name_prefix}-aks-control-plane"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+  tags                = local.common_tags
+}
+
+################################################################################
 # Payments API — the first onboarded application workload
 ################################################################################
 

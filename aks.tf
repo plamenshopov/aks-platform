@@ -37,8 +37,18 @@ resource "azurerm_kubernetes_cluster" "this" {
   # network layer.
   # ---------------------------------------------------------------------------
   role_based_access_control_enabled = true
-  local_account_disabled            = false
+  local_account_disabled            = true
   private_cluster_enabled           = false
+
+  api_server_access_profile {
+    authorized_ip_ranges = [var.admin_cidr]
+  }
+
+  azure_active_directory_role_based_access_control {
+    azure_rbac_enabled     = true
+    admin_group_object_ids = var.aks_admin_group_object_ids
+    tenant_id              = data.azurerm_client_config.current.tenant_id
+  }
 
   # ---------------------------------------------------------------------------
   # Platform capabilities
@@ -50,7 +60,8 @@ resource "azurerm_kubernetes_cluster" "this" {
   image_cleaner_interval_hours = 48
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.aks_control_plane.id]
   }
 
   # ---------------------------------------------------------------------------
@@ -115,6 +126,10 @@ resource "azurerm_kubernetes_cluster" "this" {
     secret_rotation_interval = "5m"
   }
 
+  key_management_service {
+    key_vault_key_id = azurerm_key_vault_key.etcd.id
+  }
+
   workload_autoscaler_profile {
     keda_enabled                    = true
     vertical_pod_autoscaler_enabled = false
@@ -165,6 +180,7 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   depends_on = [
+    azurerm_role_assignment.aks_key_vault_crypto_user,
     azurerm_subnet_network_security_group_association.system_nodes,
     azurerm_subnet_network_security_group_association.user_nodes,
   ]
