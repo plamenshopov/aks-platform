@@ -49,7 +49,6 @@ resource "azurerm_kubernetes_cluster" "this" {
     azure_rbac_enabled     = true
     tenant_id              = data.azurerm_client_config.current.tenant_id
   }
-
   # ---------------------------------------------------------------------------
   # Platform capabilities
   # ---------------------------------------------------------------------------
@@ -128,7 +127,6 @@ resource "azurerm_kubernetes_cluster" "this" {
   key_management_service {
     key_vault_key_id = azurerm_key_vault_key.etcd.id
   }
-
   workload_autoscaler_profile {
     keda_enabled                    = true
     vertical_pod_autoscaler_enabled = false
